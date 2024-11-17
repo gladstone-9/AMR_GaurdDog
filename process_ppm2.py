@@ -318,14 +318,14 @@ def create_ppm(command):
 # Complete obstacle border helped from creating skeleton lines that are in grey
 # Result: Pretty Nice Graph
 cumberland_test_command = ['./openslam_evg-thin/test', 
-           '-image-file', 'openslam_evg-thin/Maps/maps/cumberland/cumberland.pgm', 
+           '-image-file', 'Maps/maps/cumberland/cumberland.pgm', 
            '-min-distance', '4',
            '-pruning', '0',
         #    '-max-distance', '100',
         #    '-robot-loc', '1144', '691'
 ]
 create_ppm(cumberland_test_command)
-analyze_and_plot_ppm_p6("openslam_evg-thin/Maps/maps/cumberland/cumberland_skeleton.ppm")
+analyze_and_plot_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
 
 
 
