@@ -1,0 +1,3 @@
+[submodule "openslam_evg-thin"]
+	path = openslam_evg-thin
+	url = https://github.com/OpenSLAM-org/openslam_evg-thin
