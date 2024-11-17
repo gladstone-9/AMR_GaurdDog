@@ -4,14 +4,12 @@ import subprocess
 from collections import deque       # Find vertex neighbors
 
 
-
 # Defines
 GREY_PIXEL = [127, 127, 127]        # Blocked off by walls
 BLACK_PIXEL = [0, 0, 0]             # Walls
 WHITE_PIXEL = [255, 255, 255]       # Free Space
 RED_PIXEL = [255, 0, 0]             # Skeleton Path
 BLUE_PIXEL = [0, 0, 255]            # Vertex of skeleton
-
 
 class Vertex:
     def __init__(self, ID, coordinates):
@@ -43,7 +41,7 @@ class Vertex:
         for neighbor in self.neighbors:
             print(f'{neighbor}\n')
 
-def analyze_and_plot_ppm_p6(file_path):
+def extract_graph_ppm_p6(file_path):
     graph = []      # An adj list of vertices
     
     with open(file_path, 'rb') as file:
@@ -108,6 +106,13 @@ def analyze_and_plot_ppm_p6(file_path):
         plt.title("PPM Image Visualization")
         plt.axis("off")  # Turn off axis labels
         plt.show()
+
+def plot_ppm(pixel_grid):
+    plt.imshow(pixel_grid)
+    plt.title("PPM Image Visualization")
+    plt.axis("off")  # Turn off axis labels
+    plt.show()
+    
 
 # Method adapted from https://ap.isr.uc.pt/archive/PR12_ICAART2012.pdf
 def find_vertices(grid, graph):
@@ -321,7 +326,7 @@ def create_ppm(command):
 #            '-max-distance', '100',
 #            '-robot-loc', '1144', '691']
 # create_ppm(command)
-# analyze_and_plot_ppm_p6("openslam_evg-thin/Maps/DIAG_floor1_skeleton.ppm")
+# extract_graph_ppm_p6("openslam_evg-thin/Maps/DIAG_floor1_skeleton.ppm")
 
 
 # Test: Cumberland Map
@@ -336,7 +341,7 @@ cumberland_test_command = ['./openslam_evg-thin/test',
         #    '-robot-loc', '1144', '691'
 ]
 create_ppm(cumberland_test_command)
-analyze_and_plot_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
+extract_graph_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
 
 
 # Important EVG-THIN Parameters
@@ -355,5 +360,15 @@ analyze_and_plot_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
 
 
 # Current problems:
-# For some reason the vertex is right but the direction is wrong
-# The positions are also backwards (b/c NP array)
+# NP Array Shananigans (that don't mess up computation)
+# - Corresponding directions are kind of unintuitive
+#   - (c, r) where c + 1 moves down the grid and c - 1 moves up the grid
+# - The graph positions are also backwards (b/c NP array)
+
+
+# Parts of the Gaurd Dog Project:
+'''
+1. Record (in realtime or all at once) a map of the area with SLAM (probably remotely controlling the robot)
+2. Save the map and extract the graph information.
+3. Use graph info and maybe occupancy grid to determine best surveillance route.
+'''

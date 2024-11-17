@@ -1,0 +1,1 @@
+Given a PGM file the script will return a graph of a skeleton (branching paths that don't hit obstacles)
