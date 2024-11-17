@@ -22,7 +22,8 @@ class Vertex:
         self.ID = ID  # Vertex identifier
         self.coordinates = coordinates  # Coordinates of the vertex (tuple, e.g., (x, y))
         self.Degree = 0  # Degree of the vertex, initially 0
-        self.neighbors = []  # List to store neighboring vertices [neighbor id, compass direction, weight]
+        self.neighbors = []  # List to store neighboring vertices [neighbor id, compass direction, weight (length of path)]
+        self.neighbor_paths = []    # Red pixel path to neighbor_i
     
     def add_neighbor(self, neighbor):
         """
@@ -98,6 +99,9 @@ def analyze_and_plot_ppm_p6(file_path):
         for i in range(len(graph)):
             print(f'{graph[i]}\n')
             graph[i].print_neighbors()
+            
+        # Print Path of Example Vertice
+        # print(graph[len(graph) - 1].neighbor_paths)
         
         # Plot PPM Image After Vertice Update
         plt.imshow(grid)
@@ -203,10 +207,10 @@ def find_neighbor_vertices(grid, graph):
             (1, 0, "S"),
             (0, -1, "W"),
             (0, 1, "E"),
-            (-1, -1, "SW"),
-            (1, 1, "NE"),
-            (1, -1, "SE"),
-            (-1, 1, "NW")
+            (-1, -1, "NW"),
+            (1, 1, "SE"),
+            (1, -1, "SW"),
+            (-1, 1, "NE")
         ]
         
         # Right now I'm passing actual vertice, should be passing the red pixels around it
@@ -219,11 +223,12 @@ def find_neighbor_vertices(grid, graph):
             ny = y+dy
             
             if 0 <= nx < len(grid) and 0 <= ny < len(grid[0]) and np.array_equal(grid[nx][ny], RED_PIXEL):
-                neighbor_vertice, visited = bfs(V, [nx, ny], grid, visited, direc, graph)
+                neighbor_vertice, path, visited = bfs(V, [nx, ny], grid, visited, direc, graph)
                 
         
                 if neighbor_vertice != []:
                     graph[i].add_neighbor(neighbor_vertice)   
+                    graph[i].neighbor_paths.append(path)
     return graph
 
 # For each Vertice, find neighbors along the Red paths
@@ -249,19 +254,19 @@ def bfs(V, start, grid, visited, direction, graph):
     ]
     
     q = deque()  # (row, col, distance)       Placeholder N
-    arr = [start[0], start[1], 0]
+    arr = [start[0], start[1], 0, []]
     q.append(arr)
     # Visited array to mark the visited positions
     visited[start[0]][start[1]] = True
     
     while q:
-        x, y, dist = q.popleft()
+        x, y, dist, path = q.popleft()
         
         # Check if reached a vertex
         if [x,y] != start_vertex and np.array_equal(grid[x][y], BLUE_PIXEL):
             for vertex in graph:
                 if vertex.coordinates == (x,y):
-                    return [vertex.ID, direction, dist], visited
+                    return [vertex.ID, direction, dist], path, visited
         
         # Explore the 4 possible directions
         for dx, dy in directions:
@@ -270,10 +275,11 @@ def bfs(V, start, grid, visited, direction, graph):
             # If the move is valid and not visited, add to the queue
             if is_valid_move(nx, ny, grid, visited, start_vertex):
                 visited[nx][ny] = True
-                q.append((nx, ny, dist + 1))
+                new_path = path + [(nx, ny)]
+                q.append((nx, ny, dist + 1, new_path))
     
     # If no path is found
-    return [], visited
+    return [], [], visited
 
 
 def create_ppm(command):
@@ -326,9 +332,6 @@ cumberland_test_command = ['./openslam_evg-thin/test',
 ]
 create_ppm(cumberland_test_command)
 analyze_and_plot_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
-
-
-
 
 
 # Important EVG-THIN Parameters
