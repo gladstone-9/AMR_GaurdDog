@@ -109,6 +109,7 @@ def analyze_and_plot_ppm_p6(file_path):
         plt.axis("off")  # Turn off axis labels
         plt.show()
 
+# Method adapted from https://ap.isr.uc.pt/archive/PR12_ICAART2012.pdf
 def find_vertices(grid, graph):
     new_grid = np.zeros_like(grid)
 
@@ -168,6 +169,10 @@ def find_vertices(grid, graph):
                             for cell in slice:
                                 if np.array_equal(cell, RED_PIXEL):
                                     slice_cell_count += 1
+                            # 2 adj red pixels
+                            if slice_cell_count == 2:
+                                red_pixel_count += 1
+                                
                         # 2 adj red pixels
                         if slice_cell_count == 2 and np.array_equal(slice[1], RED_PIXEL):
                                 red_pixel_count += 1
