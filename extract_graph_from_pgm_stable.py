@@ -497,17 +497,29 @@ def create_ppm(command):
 # create_ppm(grid_test_command)
 # # graph = extract_graph_ppm_p6("Maps/maps/broughton/broughton_skeleton.ppm")
 
-# Test: ctcv
+# # Test: ctcv
+# # Comments: Robot location specification helped alot, min distance helped too
+# grid_test_command = ['./openslam_evg-thin/test', 
+#            '-image-file', 'Maps/maps/ctcv/ctcv.pgm', 
+#            '-min-distance', '4',
+#            '-pruning', '0',
+#         #    '-max-distance', '100',
+#            '-robot-loc', '521', '113',
+# ]
+# create_ppm(grid_test_command)
+# graph = extract_graph_ppm_p6("Maps/maps/ctcv/ctcv_skeleton.ppm")
+
+# Test: move_base_arena
 # Comments: Robot location specification helped alot, min distance helped too
 grid_test_command = ['./openslam_evg-thin/test', 
-           '-image-file', 'Maps/maps/ctcv/ctcv.pgm', 
-           '-min-distance', '4',
+           '-image-file', 'Maps/maps/move_base_arena/move_base_arena.pgm', 
+           '-min-distance', '1',
            '-pruning', '0',
         #    '-max-distance', '100',
-           '-robot-loc', '521', '113',
+           '-robot-loc', '100', '100',
 ]
 create_ppm(grid_test_command)
-graph = extract_graph_ppm_p6("Maps/maps/ctcv/ctcv_skeleton.ppm")
+graph = extract_graph_ppm_p6("Maps/maps/move_base_arena/move_base_arena_skeleton.ppm")
 
 
 # Important EVG-THIN Parameters
@@ -530,9 +542,6 @@ graph = extract_graph_ppm_p6("Maps/maps/ctcv/ctcv_skeleton.ppm")
 # - Corresponding directions are kind of unintuitive
 #   - (c, r) where c + 1 moves down the grid and c - 1 moves up the grid
 # - The graph positions are also backwards (b/c NP array)
-# - Don't handle missing diagonal path 
-# - Vertices kind of messed up
-
 
 # Parts of the Gaurd Dog Project:
 '''
