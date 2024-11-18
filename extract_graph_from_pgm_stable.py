@@ -106,6 +106,8 @@ def extract_graph_ppm_p6(file_path):
         plt.title("PPM Image Visualization")
         plt.axis("off")  # Turn off axis labels
         plt.show()
+        
+    return graph
 
 def plot_ppm(pixel_grid):
     plt.imshow(pixel_grid)
@@ -126,22 +128,32 @@ def find_vertices(grid, graph):
     for row in range(height):
         for col in range(width):
             pixel = grid[row][col]
+            
+            # 9-cell window
+            row_start = max(row - 1, 0)
+            row_end = min(row + 1, grid.shape[0] - 1)
+            col_start = max(col - 1, 0)
+            col_end = min(col + 1, grid.shape[1] - 1)
+            
+            window = grid[row_start:row_end + 1, col_start:col_end + 1]
+            # print(window)
+            
+            # Count red pixels in window
+            red_pixel_count = np.sum(np.all(window == RED_PIXEL, axis=2))
+            
+            # Add missing White pixels
+            if window.shape == (3,3,3) and np.array_equal(pixel, WHITE_PIXEL):
+                if is_missing_red_pixel(window, red_pixel_count):
+                    grid[row][col] = RED_PIXEL
+                    red_pixel_count += 1
+                    pixel = RED_PIXEL
 
             # Initial count of Pixels
             if np.array_equal(pixel, RED_PIXEL):
-                # 9-cell window
-                row_start = max(row - 1, 0)
-                row_end = min(row + 1, grid.shape[0] - 1)
-                col_start = max(col - 1, 0)
-                col_end = min(col + 1, grid.shape[1] - 1)
-                
                 window = grid[row_start:row_end + 1, col_start:col_end + 1]
-                # print(window)
-                
-                # Count red pixels in window
-                red_pixel_count = np.sum(np.all(window == RED_PIXEL, axis=2))
                 
                 # Adjacent vertex check
+                # Might be a problem now that we have a white_pixel check
                 new_grid_window = new_grid[row_start:row_end + 1, col_start:col_end + 1]
                 blue_pixel_count = np.sum(np.all(new_grid_window == BLUE_PIXEL, axis=2))
                 if(blue_pixel_count > 0):
@@ -200,6 +212,60 @@ def find_vertices(grid, graph):
 # Implement if needed
 def cluster_removal(grid):
     pass
+
+# Replace the center White Pixel with a Red Pixel if in a 9 pixel window, there are two non-adjacent red pixels
+# Strategy: Determine only 2 Red pixels, find positions of both pixels, make sure abs(x1-x2) or abs(y1-y2) > 2
+def is_missing_red_pixel(window, red_pixel_count):
+    # if red_pixel_count == 2:
+    #     # 2 pixel patterns
+    #     across = [
+    #         [WHITE_PIXEL, WHITE_PIXEL, WHITE_PIXEL],
+    #         [RED_PIXEL, WHITE_PIXEL, RED_PIXEL],
+    #         [WHITE_PIXEL, WHITE_PIXEL, WHITE_PIXEL]
+    #     ]
+    #     down = [
+    #         [WHITE_PIXEL, RED_PIXEL, WHITE_PIXEL],
+    #         [WHITE_PIXEL, WHITE_PIXEL, WHITE_PIXEL],
+    #         [WHITE_PIXEL, RED_PIXEL, WHITE_PIXEL]
+    #     ]
+        
+    #     diag_down = [
+    #         [RED_PIXEL, WHITE_PIXEL, WHITE_PIXEL],
+    #         [WHITE_PIXEL, WHITE_PIXEL, WHITE_PIXEL],
+    #         [WHITE_PIXEL, WHITE_PIXEL, RED_PIXEL]
+    #     ]
+        
+    #     diag_up = [
+    #         [WHITE_PIXEL, WHITE_PIXEL, RED_PIXEL],
+    #         [WHITE_PIXEL, WHITE_PIXEL, WHITE_PIXEL],
+    #         [RED_PIXEL, WHITE_PIXEL, WHITE_PIXEL]
+    #     ]
+    #     if np.all(window == across) or np.all(window == down) or np.all(window == diag_down) or np.all(window == diag_up):
+    #         return True
+        
+    if red_pixel_count == 4:
+        # 4 pixel patterns 
+        cross = [
+            [WHITE_PIXEL, RED_PIXEL, WHITE_PIXEL],
+            [RED_PIXEL, WHITE_PIXEL, RED_PIXEL],
+            [WHITE_PIXEL, RED_PIXEL, WHITE_PIXEL]
+        ]
+        diag_cross = [
+            [RED_PIXEL, WHITE_PIXEL, RED_PIXEL],
+            [WHITE_PIXEL, WHITE_PIXEL, WHITE_PIXEL],
+            [RED_PIXEL, WHITE_PIXEL, RED_PIXEL]
+        ]
+        if np.all(window == cross) or np.all(window == diag_cross):
+            return True
+    else:
+        if np.array_equal(window[0][1], RED_PIXEL) and  np.array_equal(window[2][1], RED_PIXEL) or \
+           np.array_equal(window[1][2], RED_PIXEL) and  np.array_equal(window[1][0], RED_PIXEL):
+        #    np.array_equal(window[0][0], RED_PIXEL) and  np.array_equal(window[2][2], RED_PIXEL) or \
+        #    np.array_equal(window[0][2], RED_PIXEL) and  np.array_equal(window[2][0], RED_PIXEL) or \
+
+            return True
+        
+    return False
 
 # A BFS approach to find vertex neighbors following the red pixel path
 # Note: If the red pixel path ends (unexpetedly as in some cases) a valid neighbor will not be found
@@ -334,14 +400,26 @@ def create_ppm(command):
 # Complete obstacle border helped from creating skeleton lines that are in grey
 # Result: Pretty Nice Graph
 cumberland_test_command = ['./openslam_evg-thin/test', 
-           '-image-file', 'Maps/maps/cumberland/cumberland.pgm', 
+           '-image-file', 'AMR_GaurdDog/Maps/maps/cumberland/cumberland.pgm', 
            '-min-distance', '4',
            '-pruning', '0',
         #    '-max-distance', '100',
         #    '-robot-loc', '1144', '691'
 ]
 create_ppm(cumberland_test_command)
-extract_graph_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
+graph = extract_graph_ppm_p6("AMR_GaurdDog/Maps/maps/cumberland/cumberland_skeleton.ppm")
+
+# # Test: Grid
+# # Result:
+# grid_test_command = ['./openslam_evg-thin/test', 
+#            '-image-file', 'AMR_GaurdDog/Maps/maps/grid/grid.pgm', 
+#         #    '-min-distance', '4',
+#            '-pruning', '0',
+#         #    '-max-distance', '100',
+#         #    '-robot-loc', '1144', '691'
+# ]
+# create_ppm(grid_test_command)
+# graph = extract_graph_ppm_p6("AMR_GaurdDog/Maps/maps/grid/grid_skeleton.ppm")
 
 
 # Important EVG-THIN Parameters
@@ -364,6 +442,8 @@ extract_graph_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
 # - Corresponding directions are kind of unintuitive
 #   - (c, r) where c + 1 moves down the grid and c - 1 moves up the grid
 # - The graph positions are also backwards (b/c NP array)
+# - Don't handle missing diagonal path 
+# - Vertices kind of messed up
 
 
 # Parts of the Gaurd Dog Project:
