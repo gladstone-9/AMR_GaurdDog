@@ -7,7 +7,7 @@ from collections import deque       # Find vertex neighbors
 # Defines
 GREY_PIXEL = [127, 127, 127]        # Blocked off by walls
 BLACK_PIXEL = [0, 0, 0]             # Walls
-WHITE_PIXEL = [255, 255, 255]       # Free Space
+WHITE_PIXEL = [255, 255, 255]       # Free Space [255, 255, 255] or [254, 254, 254], made all [254, 254, 254] to [255, 255, 255]
 RED_PIXEL = [255, 0, 0]             # Skeleton Path
 BLUE_PIXEL = [0, 0, 255]            # Vertex of skeleton
 
@@ -89,6 +89,7 @@ def extract_graph_ppm_p6(file_path):
         
         ## Occupancy Grid Processing
         # grid = cluster_removal(grid)
+        grid = fix_skeleton(grid)                       # Add in any missing red pixels and fix white pixel variants    
         grid, graph = find_vertices(grid, graph)        # Find vertices and update grid
         graph = find_neighbor_vertices(grid, graph)     # Find neighbors for each vertice       
         
@@ -114,8 +115,42 @@ def plot_ppm(pixel_grid):
     plt.title("PPM Image Visualization")
     plt.axis("off")  # Turn off axis labels
     plt.show()
-    
 
+def fix_skeleton(grid):
+    new_grid = np.zeros_like(grid)
+    
+    height = np.size(grid, axis=0)
+    width = np.size(grid, axis=1)
+    
+    for row in range(height):
+        for col in range(width):
+            pixel = grid[row][col]
+            
+            # Clean up White Pixel Variants
+            if np.array_equal(pixel, [254,254,254]):
+                pixel = WHITE_PIXEL
+                grid[row][col] = WHITE_PIXEL
+            
+            # 9-cell window
+            row_start = max(row - 1, 0)
+            row_end = min(row + 1, grid.shape[0] - 1)
+            col_start = max(col - 1, 0)
+            col_end = min(col + 1, grid.shape[1] - 1)
+            
+            window = grid[row_start:row_end + 1, col_start:col_end + 1]
+            
+            # Count red pixels in window
+            red_pixel_count = np.sum(np.all(window == RED_PIXEL, axis=2))
+            
+            # Add missing Red pixels
+            if window.shape == (3,3,3) and np.array_equal(pixel, WHITE_PIXEL):
+                if is_missing_red_pixel(window, red_pixel_count):
+                    grid[row][col] = RED_PIXEL
+                    
+            new_grid[row][col] = grid[row][col]
+    
+    return new_grid
+            
 # Method adapted from https://ap.isr.uc.pt/archive/PR12_ICAART2012.pdf
 def find_vertices(grid, graph):
     new_grid = np.zeros_like(grid)
@@ -141,12 +176,12 @@ def find_vertices(grid, graph):
             # Count red pixels in window
             red_pixel_count = np.sum(np.all(window == RED_PIXEL, axis=2))
             
-            # Add missing White pixels
-            if window.shape == (3,3,3) and np.array_equal(pixel, WHITE_PIXEL):
-                if is_missing_red_pixel(window, red_pixel_count):
-                    grid[row][col] = RED_PIXEL
-                    red_pixel_count += 1
-                    pixel = RED_PIXEL
+            # # Add missing White pixels
+            # if window.shape == (3,3,3) and np.array_equal(pixel, WHITE_PIXEL):
+            #     if is_missing_red_pixel(window, red_pixel_count):
+            #         grid[row][col] = RED_PIXEL
+            #         red_pixel_count += 1
+            #         pixel = RED_PIXEL
 
             # Initial count of Pixels
             if np.array_equal(pixel, RED_PIXEL):
@@ -242,7 +277,7 @@ def is_missing_red_pixel(window, red_pixel_count):
     #     ]
     #     if np.all(window == across) or np.all(window == down) or np.all(window == diag_down) or np.all(window == diag_up):
     #         return True
-        
+
     if red_pixel_count == 4:
         # 4 pixel patterns 
         cross = [
@@ -257,13 +292,42 @@ def is_missing_red_pixel(window, red_pixel_count):
         ]
         if np.all(window == cross) or np.all(window == diag_cross):
             return True
-    else:
-        if np.array_equal(window[0][1], RED_PIXEL) and  np.array_equal(window[2][1], RED_PIXEL) or \
-           np.array_equal(window[1][2], RED_PIXEL) and  np.array_equal(window[1][0], RED_PIXEL):
+        
+    # May want to modify this
+    elif 2 <= red_pixel_count <= 4:
+        if (np.array_equal(window[0][1], RED_PIXEL) and  np.array_equal(window[2][1], RED_PIXEL)) or \
+           (np.array_equal(window[1][2], RED_PIXEL) and  np.array_equal(window[1][0], RED_PIXEL)):
         #    np.array_equal(window[0][0], RED_PIXEL) and  np.array_equal(window[2][2], RED_PIXEL) or \
         #    np.array_equal(window[0][2], RED_PIXEL) and  np.array_equal(window[2][0], RED_PIXEL) or \
 
             return True
+        
+        ## To handle missing diagonal
+        if red_pixel_count == 2:
+            # Define corners
+            corners = [(0, 0), (0, 2), (2, 0), (2, 2)]
+            
+            # Define opposite corners and their adjacent cells
+            opposite_adjacents = {
+                (0, 0): [(2, 2), (1, 2), (2, 1), (1, 1)],
+                (0, 2): [(2, 0), (1, 0), (2, 1), (1, 1)],
+                (2, 0): [(0, 2), (0, 1), (1, 2), (1, 1)],
+                (2, 2): [(0, 0), (0, 1), (1, 0), (1, 1)],
+            }
+            
+            # Check each corner
+            for corner in corners:
+                if np.array_equal(window[corner[0]][corner[1]], RED_PIXEL):
+                    # Check if there's a 1 in the opposite corner or adjacent cells
+                    for adj in opposite_adjacents[corner]:
+                        if np.array_equal(window[adj[0]][adj[1]], RED_PIXEL):
+                            return True        
+        
+        # if red_pixel_count == 2 and \
+        #    (np.array_equal(window[0][0], RED_PIXEL) and  np.array_equal(window[2][2], RED_PIXEL) or \
+        #    np.array_equal(window[0][2], RED_PIXEL) and  np.array_equal(window[2][0], RED_PIXEL)):
+               
+        #     return True
         
     return False
 
@@ -395,31 +459,31 @@ def create_ppm(command):
 # extract_graph_ppm_p6("openslam_evg-thin/Maps/DIAG_floor1_skeleton.ppm")
 
 
-# Test: Cumberland Map
-# Turning off pruning and setting a minimum distance from obstacles helped
-# Complete obstacle border helped from creating skeleton lines that are in grey
-# Result: Pretty Nice Graph
-cumberland_test_command = ['./openslam_evg-thin/test', 
-           '-image-file', 'AMR_GaurdDog/Maps/maps/cumberland/cumberland.pgm', 
-           '-min-distance', '4',
-           '-pruning', '0',
-        #    '-max-distance', '100',
-        #    '-robot-loc', '1144', '691'
-]
-create_ppm(cumberland_test_command)
-graph = extract_graph_ppm_p6("AMR_GaurdDog/Maps/maps/cumberland/cumberland_skeleton.ppm")
-
-# # Test: Grid
-# # Result:
-# grid_test_command = ['./openslam_evg-thin/test', 
-#            '-image-file', 'AMR_GaurdDog/Maps/maps/grid/grid.pgm', 
-#         #    '-min-distance', '4',
+# # Test: Cumberland Map
+# # Turning off pruning and setting a minimum distance from obstacles helped
+# # Complete obstacle border helped from creating skeleton lines that are in grey
+# # Result: Pretty Nice Graph
+# cumberland_test_command = ['./openslam_evg-thin/test', 
+#            '-image-file', 'Maps/maps/cumberland/cumberland.pgm', 
+#            '-min-distance', '4',
 #            '-pruning', '0',
 #         #    '-max-distance', '100',
 #         #    '-robot-loc', '1144', '691'
 # ]
-# create_ppm(grid_test_command)
-# graph = extract_graph_ppm_p6("AMR_GaurdDog/Maps/maps/grid/grid_skeleton.ppm")
+# create_ppm(cumberland_test_command)
+# graph = extract_graph_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
+
+# Test: Grid
+# Result:
+grid_test_command = ['./openslam_evg-thin/test', 
+           '-image-file', 'Maps/maps/grid/grid.pgm', 
+        #    '-min-distance', '4',
+           '-pruning', '0',
+        #    '-max-distance', '100',
+        #    '-robot-loc', '1144', '691'
+]
+create_ppm(grid_test_command)
+graph = extract_graph_ppm_p6("Maps/maps/grid/grid_skeleton.ppm")
 
 
 # Important EVG-THIN Parameters
@@ -452,3 +516,25 @@ graph = extract_graph_ppm_p6("AMR_GaurdDog/Maps/maps/cumberland/cumberland_skele
 2. Save the map and extract the graph information.
 3. Use graph info and maybe occupancy grid to determine best surveillance route.
 '''
+
+
+
+# Deprecated:
+
+
+# Testing missing red pixel
+# ex_window = np.array([
+#     [[255, 255, 255],
+#      [255,   255,   255],
+#      [255,   0,   0]],
+
+#     [[255, 255, 255],
+#      [255, 255, 255],
+#      [255, 255, 255]],
+
+#     [[255, 255, 255],
+#      [255, 0, 0],
+#      [255, 255, 255]]
+# ])
+
+# print(is_missing_red_pixel(ex_window, 2))
