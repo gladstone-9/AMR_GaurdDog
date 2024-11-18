@@ -47,8 +47,8 @@ def extract_graph_ppm_p6(file_path):
     with open(file_path, 'rb') as file:
         # Read magic number
         magic_number = file.readline().strip()
-        if magic_number != b"P6":
-            raise ValueError("Unsupported PPM format. This script supports only P6.")
+        # if magic_number != b"P6":
+        #     raise ValueError("Unsupported PPM format. This script supports only P6.")
 
         # Skip comments
         line = file.readline()
@@ -473,17 +473,41 @@ def create_ppm(command):
 # create_ppm(cumberland_test_command)
 # graph = extract_graph_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
 
-# Test: Grid
-# Result:
+# # Test: Grid
+# # Result: Working
+# grid_test_command = ['./openslam_evg-thin/test', 
+#            '-image-file', 'Maps/maps/grid/grid.pgm', 
+#         #    '-min-distance', '4',
+#            '-pruning', '0',
+#         #    '-max-distance', '100',
+#         #    '-robot-loc', '1144', '691'
+# ]
+# create_ppm(grid_test_command)
+# graph = extract_graph_ppm_p6("Maps/maps/grid/grid_skeleton.ppm")
+
+# # Test: broughton
+# Comments: Didn't work for some reason
+# grid_test_command = ['./openslam_evg-thin/test', 
+#            '-image-file', 'Maps/maps/broughton/broughton.pgm', 
+#         #    '-min-distance', '4',
+#         #    '-pruning', '0',
+#         #    '-max-distance', '100',
+#         #    '-robot-loc', '1144', '691'
+# ]
+# create_ppm(grid_test_command)
+# # graph = extract_graph_ppm_p6("Maps/maps/broughton/broughton_skeleton.ppm")
+
+# Test: ctcv
+# Comments: Robot location specification helped alot, min distance helped too
 grid_test_command = ['./openslam_evg-thin/test', 
-           '-image-file', 'Maps/maps/grid/grid.pgm', 
-        #    '-min-distance', '4',
+           '-image-file', 'Maps/maps/ctcv/ctcv.pgm', 
+           '-min-distance', '4',
            '-pruning', '0',
         #    '-max-distance', '100',
-        #    '-robot-loc', '1144', '691'
+           '-robot-loc', '521', '113',
 ]
 create_ppm(grid_test_command)
-graph = extract_graph_ppm_p6("Maps/maps/grid/grid_skeleton.ppm")
+graph = extract_graph_ppm_p6("Maps/maps/ctcv/ctcv_skeleton.ppm")
 
 
 # Important EVG-THIN Parameters
