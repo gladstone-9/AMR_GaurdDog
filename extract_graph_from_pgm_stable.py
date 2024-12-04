@@ -108,9 +108,14 @@ def extract_graph_ppm_p6(file_path):
         # print(graph[len(graph) - 1].neighbor_paths)
         
         # Testing Graph Path Creation
-        # cost, optimal_path = dfs_shortest_path(graph, 0)
-        # print(cost)
-        # print(optimal_path)
+        cost, optimal_path = dfs_shortest_path(graph, 0)
+        print(cost)
+        print(optimal_path)
+        
+        # Testing Tour Path
+        all_tour_goals_pos = generate_all_tour_positions(graph, optimal_path)
+        # print(all_tour_goals_pos)
+        plot_tour(all_tour_goals_pos)
         
         # Plot PPM Image After Vertice Update
         plt.imshow(grid)
@@ -118,6 +123,34 @@ def extract_graph_ppm_p6(file_path):
         plt.show()
         
     return graph
+
+# Plot the path and direction that the robot traversed on its tour
+def plot_tour(tour_pos_list):
+    x_coords = [pos[1] for pos in tour_pos_list]
+    y_coords = [pos[0] for pos in tour_pos_list]
+    
+    # Plot the path
+    plt.figure(figsize=(8, 6))
+    plt.plot(x_coords, y_coords, linestyle='-', linewidth=1, color='b', label='Path')
+
+    # Add arrows to show direction
+    for i in range(len(x_coords) - 1):
+        plt.arrow(
+            x_coords[i], y_coords[i], 
+            x_coords[i + 1] - x_coords[i], 
+            y_coords[i + 1] - y_coords[i], 
+            head_width=0.2, head_length=0.2, fc='r', ec='r'
+        )
+        
+    # Add labels and title
+    plt.xlabel('X Coordinate')
+    plt.ylabel('Y Coordinate')
+    plt.title('Robot Tour')
+    plt.grid(True)
+    plt.legend()
+    plt.gca().invert_yaxis()
+    plt.show()
+    
 
 def plot_ppm(pixel_grid):
     plt.imshow(pixel_grid)
@@ -507,7 +540,7 @@ def path_to_point(vertices, start_id, goal_id):
                 current_id = came_from[current_id]
             path.append(start_id)
             path.reverse()
-            return path, g_score[goal_id]
+            return path                 # May also return g_score[goal_id]
 
         # Explore neighbors
         current_vertex = id_to_vertex[current_id]
@@ -567,6 +600,51 @@ def dfs_shortest_path(vertices, start_id):
     dfs(start_id)
 
     return total_cost, path
+
+# Return a list of all positions (x,y) for the robot to complete the tour.
+def generate_all_tour_positions(graph, tour_path):
+    total_positions = []
+    for i in range(0, len(tour_path) - 1):
+        curr_vertex_id = tour_path[i]
+        next_vertex_id = tour_path[i+1]
+        
+        # All vertices bewteen Vertex A and Vertex B
+        # ie. [0 -> 1] or [0 -> 8 -> 3 -> 1]
+        path_ids_bewteen_vertices = path_to_point(graph, curr_vertex_id, next_vertex_id)
+        for j in range(0, len(path_ids_bewteen_vertices) - 1):
+            curr_vertex_id_on_path = path_ids_bewteen_vertices[j]
+            next_vertex_id_on_path = path_ids_bewteen_vertices[j+1]
+            
+            red_pixel_path = get_neighbor_pixel_path(graph, curr_vertex_id_on_path, next_vertex_id_on_path)
+            total_positions.extend(red_pixel_path)
+            
+    return total_positions
+# Given a vertex and its neighbor
+# Return the associated pixel path in the right order
+def get_neighbor_pixel_path(graph, curr_vertex_id_on_path, next_vertex_id_on_path):
+    neighbor_ids = graph[curr_vertex_id_on_path].neighbors
+    
+    index = 0
+    for id in neighbor_ids:
+        if id[0] == next_vertex_id_on_path:
+            red_pixel_path = graph[curr_vertex_id_on_path].neighbor_paths[index]
+            
+            ## Reverse the path if needed (seems like not needed)
+            # curr_vertex_pt = graph[curr_vertex_id_on_path].coordinates
+            # start_pt = red_pixel_path[0]
+            # end_pt = red_pixel_path[-1]
+            
+            # dist_to_start = math.sqrt((start_pt[0] - curr_vertex_pt[0])**2 + (start_pt[1] - curr_vertex_pt[1])**2)
+            # dist_to_end = math.sqrt((end_pt[0] - curr_vertex_pt[0])**2 + (end_pt[1] - curr_vertex_pt[1])**2)
+            
+            # if(dist_to_end < dist_to_start):
+            #     red_pixel_path = red_pixel_path.reverse()
+            
+            return red_pixel_path
+        
+        index += 1
+        
+    return None
 
 
 # Test Runs with Different Maps
@@ -647,6 +725,9 @@ graph = extract_graph_ppm_p6("Maps/maps/move_base_arena/move_base_arena_skeleton
 cost, optimal_path = dfs_shortest_path(graph, 0)
 print(cost)
 print(optimal_path)
+
+all_tour_goals_pos = generate_all_tour_positions(graph, optimal_path)
+print(all_tour_goals_pos)
 
 
 
