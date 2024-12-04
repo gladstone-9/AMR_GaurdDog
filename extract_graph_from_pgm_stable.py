@@ -2,6 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
 from collections import deque       # Find vertex neighbors
+from itertools import combinations
+import math
+
+from collections import defaultdict
+import heapq
 
 
 # Defines
@@ -102,10 +107,14 @@ def extract_graph_ppm_p6(file_path):
         # Print Path of Example Vertice
         # print(graph[len(graph) - 1].neighbor_paths)
         
+        # Testing Graph Path Creation
+        # cost, optimal_path = dfs_shortest_path(graph, 0)
+        # print(cost)
+        # print(optimal_path)
+        
         # Plot PPM Image After Vertice Update
         plt.imshow(grid)
         plt.title("PPM Image Visualization")
-        plt.axis("off")  # Turn off axis labels
         plt.show()
         
     return graph
@@ -448,6 +457,118 @@ def create_ppm(command):
         print("The command or file could not be found.")
 
 
+# Find the closest vertex to the robot's current position
+def closest_vertex_to_robot(vertices, robot_position):
+    closest_vertex = None
+    min_distance = float('inf')
+
+    for vertex in vertices:
+        # Calculate Euclidean distance
+        distance = math.sqrt(
+            (robot_position[0] - vertex.coordinates[0])**2 +
+            (robot_position[1] - vertex.coordinates[1])**2
+        )
+        if distance < min_distance:
+            min_distance = distance
+            closest_vertex = vertex
+
+    return closest_vertex
+    
+
+# Used in path to point
+def heuristic(coord1, coord2):
+    return math.sqrt((coord1[0] - coord2[0])**2 + (coord1[1] - coord2[1])**2)
+
+# A* search to find the optimal traversal path from one Vertex to another Vertex  
+def path_to_point(vertices, start_id, goal_id):
+    # Create a lookup dictionary for vertices by ID
+    id_to_vertex = {vertex.ID: vertex for vertex in vertices}
+
+    # Priority queue for nodes to explore
+    open_set = []
+    heapq.heappush(open_set, (0, start_id))  # (priority, vertex ID)
+
+    # Maps for tracking the shortest path
+    came_from = {}  # To reconstruct the path
+    g_score = {vertex.ID: float('inf') for vertex in vertices}
+    g_score[start_id] = 0  # Cost from start to start is 0
+    f_score = {vertex.ID: float('inf') for vertex in vertices}
+    f_score[start_id] = heuristic(id_to_vertex[start_id].coordinates, id_to_vertex[goal_id].coordinates)
+
+    while open_set:
+        # Get the node with the lowest f_score
+        _, current_id = heapq.heappop(open_set)
+
+        # If the goal is reached, reconstruct the path
+        if current_id == goal_id:
+            path = []
+            while current_id in came_from:
+                path.append(current_id)
+                current_id = came_from[current_id]
+            path.append(start_id)
+            path.reverse()
+            return path, g_score[goal_id]
+
+        # Explore neighbors
+        current_vertex = id_to_vertex[current_id]
+        for neighbor_id, _, weight in current_vertex.neighbors:
+            tentative_g_score = g_score[current_id] + weight
+            if tentative_g_score < g_score[neighbor_id]:
+                # Update the best path to this neighbor
+                came_from[neighbor_id] = current_id
+                g_score[neighbor_id] = tentative_g_score
+                f_score[neighbor_id] = g_score[neighbor_id] + heuristic(
+                    id_to_vertex[neighbor_id].coordinates, id_to_vertex[goal_id].coordinates
+                )
+                # Add the neighbor to the open set if not already there
+                if not any(neighbor_id == item[1] for item in open_set):
+                    heapq.heappush(open_set, (f_score[neighbor_id], neighbor_id))
+
+    # If the goal is not reachable, return None
+    return None, float('inf')
+    
+# Heuristic solution to the traveling salesman problem
+# DFS traversal with backtracking on dead ends
+def dfs_shortest_path(vertices, start_id):
+    # Lookup table for vertices by ID
+    id_to_vertex = {vertex.ID: vertex for vertex in vertices}
+
+    # Initialize variables
+    visited = set()  # To track visited nodes
+    path = []  # Store the traversal path
+    total_cost = 0  # Total traversal cost
+
+    def dfs(current_id):
+        nonlocal total_cost
+        visited.add(current_id)  # Mark the current node as visited
+        path.append(current_id)
+
+        # Get the current vertex
+        current_vertex = id_to_vertex[current_id]
+
+        # Find the nearest unvisited neighbor
+        neighbors = sorted(
+            current_vertex.neighbors, key=lambda x: x[2]
+        )  # Sort by distance (shortest first)
+
+        for neighbor_id, _, weight in neighbors:
+            if neighbor_id not in visited:
+                total_cost += weight
+                dfs(neighbor_id)
+
+        # Backtrack if all neighbors are visited
+        if len(visited) < len(vertices):
+            for neighbor_id, _, weight in current_vertex.neighbors:
+                if neighbor_id not in visited:
+                    total_cost += weight
+                    dfs(neighbor_id)
+
+    # Start DFS traversal from the start node
+    dfs(start_id)
+
+    return total_cost, path
+
+
 # Test Runs with Different Maps
 # command = ['./openslam_evg-thin/test', 
 #            '-image-file', 'openslam_evg-thin/Maps/DIAG_floor1.pgm', 
@@ -520,6 +641,16 @@ grid_test_command = ['./openslam_evg-thin/test',
 ]
 create_ppm(grid_test_command)
 graph = extract_graph_ppm_p6("Maps/maps/move_base_arena/move_base_arena_skeleton.ppm")
+
+
+# # Testing Graph Path Creation
+cost, optimal_path = dfs_shortest_path(graph, 0)
+print(cost)
+print(optimal_path)
+
+
+
+
 
 
 # Important EVG-THIN Parameters
