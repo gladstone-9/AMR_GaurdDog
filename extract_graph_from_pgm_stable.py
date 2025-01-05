@@ -148,8 +148,36 @@ def plot_tour(tour_pos_list):
     plt.title('Robot Tour')
     plt.grid(True)
     plt.legend()
-    plt.gca().invert_yaxis()
+    # plt.gca().invert_yaxis()
     plt.show()
+    
+    
+# def plot_tour(tour_pos_list):
+#     # Extract and transform coordinates
+#     x_coords = [pos[1] for pos in tour_pos_list]
+#     y_coords = [-pos[0] for pos in tour_pos_list]  # Invert the y-coordinates manually
+    
+#     # Plot the path
+#     plt.figure(figsize=(8, 6))
+#     plt.plot(x_coords, y_coords, linestyle='-', linewidth=1, color='b', label='Path')
+
+#     # Add arrows to show direction
+#     for i in range(len(x_coords) - 1):
+#         plt.arrow(
+#             x_coords[i], y_coords[i], 
+#             x_coords[i + 1] - x_coords[i], 
+#             y_coords[i + 1] - y_coords[i], 
+#             head_width=0.2, head_length=0.2, fc='r', ec='r'
+#         )
+        
+#     # Add labels and title
+#     plt.xlabel('X Coordinate')
+#     plt.ylabel('Y Coordinate (Inverted)')
+#     plt.title('Robot Tour')
+#     plt.grid(True)
+#     plt.legend()
+#     plt.show()
+
     
 
 def plot_ppm(pixel_grid):
@@ -647,30 +675,31 @@ def get_neighbor_pixel_path(graph, curr_vertex_id_on_path, next_vertex_id_on_pat
     return None
 
 
-# Test Runs with Different Maps
+## Test Runs with Different Maps
+# # Test: Diag Floor
 # command = ['./openslam_evg-thin/test', 
-#            '-image-file', 'openslam_evg-thin/Maps/DIAG_floor1.pgm', 
+#            '-image-file', 'Maps/DIAG_floor1.pgm', 
 #            '-min-distance', '12',
 #            '-pruning', '0',
 #            '-max-distance', '100',
 #            '-robot-loc', '1144', '691']
 # create_ppm(command)
-# extract_graph_ppm_p6("openslam_evg-thin/Maps/DIAG_floor1_skeleton.ppm")
+# graph = extract_graph_ppm_p6("Maps/DIAG_floor1_skeleton.ppm")
 
 
-# # Test: Cumberland Map
-# # Turning off pruning and setting a minimum distance from obstacles helped
-# # Complete obstacle border helped from creating skeleton lines that are in grey
-# # Result: Pretty Nice Graph
-# cumberland_test_command = ['./openslam_evg-thin/test', 
-#            '-image-file', 'Maps/maps/cumberland/cumberland.pgm', 
-#            '-min-distance', '4',
-#            '-pruning', '0',
-#         #    '-max-distance', '100',
-#         #    '-robot-loc', '1144', '691'
-# ]
-# create_ppm(cumberland_test_command)
-# graph = extract_graph_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
+# Test: Cumberland Map
+# Turning off pruning and setting a minimum distance from obstacles helped
+# Complete obstacle border helped from creating skeleton lines that are in grey
+# Result: Pretty Nice Graph
+cumberland_test_command = ['./openslam_evg-thin/test', 
+           '-image-file', 'Maps/maps/cumberland/cumberland.pgm', 
+           '-min-distance', '4',
+           '-pruning', '0',
+        #    '-max-distance', '100',
+        #    '-robot-loc', '1144', '691'
+]
+create_ppm(cumberland_test_command)
+graph = extract_graph_ppm_p6("Maps/maps/cumberland/cumberland_skeleton.ppm")
 
 # # Test: Grid
 # # Result: Working
@@ -708,17 +737,17 @@ def get_neighbor_pixel_path(graph, curr_vertex_id_on_path, next_vertex_id_on_pat
 # create_ppm(grid_test_command)
 # graph = extract_graph_ppm_p6("Maps/maps/ctcv/ctcv_skeleton.ppm")
 
-# Test: move_base_arena
-# Comments: Robot location specification helped alot, min distance helped too
-grid_test_command = ['./openslam_evg-thin/test', 
-           '-image-file', 'Maps/maps/move_base_arena/move_base_arena.pgm', 
-           '-min-distance', '1',
-           '-pruning', '0',
-        #    '-max-distance', '100',
-           '-robot-loc', '100', '100',
-]
-create_ppm(grid_test_command)
-graph = extract_graph_ppm_p6("Maps/maps/move_base_arena/move_base_arena_skeleton.ppm")
+# # Test: move_base_arena
+# # Comments: Robot location specification helped alot, min distance helped too
+# grid_test_command = ['./openslam_evg-thin/test', 
+#            '-image-file', 'Maps/maps/move_base_arena/move_base_arena.pgm', 
+#            '-min-distance', '1',
+#            '-pruning', '0',
+#         #    '-max-distance', '100',
+#            '-robot-loc', '100', '100',
+# ]
+# create_ppm(grid_test_command)
+# graph = extract_graph_ppm_p6("Maps/maps/move_base_arena/move_base_arena_skeleton.ppm")
 
 
 # # Testing Graph Path Creation
